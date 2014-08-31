@@ -1,0 +1,6 @@
+ssh_fingerprint = ""
+do_token = ""
+key_file = "~/.ssh/id_rsa"
+aws_access_key = ""
+aws_secret_key = ""
+s3_path = "s3://bucket/path"

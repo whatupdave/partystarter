@@ -1,0 +1,71 @@
+#!/bin/bash
+
+usage(){
+	echo "Usage: $0 COMMAND"
+	echo
+	echo "Commands:"
+	echo "    start   Start a minecraft party!"
+	echo "    save    trigger a save"
+	echo "    crash   Jump into the current party (attach to the console)"
+	echo "    stop    Save, stop the party and destroy the servers"
+	exit 1
+}
+
+party_start() {
+  terraform apply
+  party_crash
+}
+
+party_save() {
+  remote_exec /bin/bash << EOF
+    echo save-off | docker attach minecraft
+    echo save-all | docker attach minecraft
+    while ! docker logs minecraft | grep 'Saved the world'; do sleep 1; done
+
+    docker kill -s USR1 data
+    while ! docker logs data | grep 'ready'; do sleep 1; done
+
+    echo save-on | docker attach minecraft
+EOF
+}
+
+party_crash() {
+  remote_exec docker attach minecraft
+}
+
+party_stop() {
+  remote_exec /bin/bash << EOF
+    docker stop minecraft
+    docker stop data
+EOF
+
+  terraform plan -destroy -out=destroy.tfplan
+  terraform apply destroy.tfplan
+}
+
+remote_exec() {
+  ip=`terraform show terraform.tfstate | grep ipv4_address | cut -d ' ' -f5`
+  ssh -A -o StrictHostKeyChecking=no root@$ip $@
+}
+
+[[ $# -eq 0 ]] && usage
+
+case "$1" in
+start)
+  party_start
+  ;;
+
+save)
+  party_save
+  ;;
+
+crash)
+  party_crash
+  ;;
+
+stop)
+  party_stop
+  ;;
+*)
+  usage
+esac
