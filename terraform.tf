@@ -1,6 +1,12 @@
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
 variable "do_token" {}
+variable "do_region" {
+  default = "sfo1"
+}
+variable "do_size" {
+  default = "1gb"
+}
 variable "key_file" {
   default = "~/.ssh/id_rsa"
 }
@@ -14,8 +20,8 @@ provider "digitalocean" {
 resource "digitalocean_droplet" "node" {
   image = "docker"
   name = "node"
-  region = "sfo1"
-  size = "1gb"
+  region = "${var.do_region}"
+  size = "${var.do_size}"
   ssh_keys = ["${var.ssh_fingerprint}"]
 
   connection {
