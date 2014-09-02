@@ -1,5 +1,8 @@
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
+variable "subdomain" {
+  default = "mc"
+}
 variable "do_token" {}
 variable "do_region" {
   default = "sfo1"
@@ -7,6 +10,9 @@ variable "do_region" {
 variable "do_size" {
   default = "1gb"
 }
+variable "domain" {}
+variable "dnsimple_token" {}
+variable "dnsimple_email" {}
 variable "key_file" {
   default = "~/.ssh/id_rsa"
 }
@@ -15,6 +21,10 @@ variable "ssh_fingerprint" {}
 
 provider "digitalocean" {
   token = "${var.do_token}"
+}
+provider "dnsimple" {
+    token = "${var.dnsimple_token}"
+    email = "${var.dnsimple_email}"
 }
 
 resource "digitalocean_droplet" "node" {
@@ -40,6 +50,14 @@ resource "digitalocean_droplet" "node" {
   }
 }
 
-output "server" {
+resource "dnsimple_record" "subdomain" {
+  domain = "${var.domain}"
+  name = "${var.subdomain}"
   value = "${digitalocean_droplet.node.ipv4_address}"
+  type = "A"
+  ttl = 60
+}
+
+output "server" {
+  value = "${var.subdomain}.${var.domain}"
 }
