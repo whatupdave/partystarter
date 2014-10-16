@@ -31,7 +31,7 @@ party_crash() {
 party_stop() {
   remote_exec /bin/bash << EOF
     docker stop minecraft
-    docker stop data
+    docker stop --time=3600 data
 EOF
 
   terraform plan -destroy -out=destroy.tfplan
