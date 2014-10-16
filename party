@@ -13,19 +13,14 @@ usage(){
 
 party_start() {
   terraform apply
+  add_backup_cron
+  add_overviewer
   party_crash
 }
 
 party_save() {
   remote_exec /bin/bash << EOF
-    echo save-off | docker attach minecraft
-    echo save-all | docker attach minecraft
-    while ! docker logs minecraft | grep 'Saved the world'; do sleep 1; done
-
     docker kill -s USR1 data
-    while ! docker logs data | grep 'ready'; do sleep 1; done
-
-    echo save-on | docker attach minecraft
 EOF
 }
 
@@ -43,9 +38,22 @@ EOF
   terraform apply destroy.tfplan
 }
 
+add_backup_cron() {
+  remote_exec /bin/bash << EOF
+    echo "*/10 * * * * docker kill -s USR1 data" | crontab -
+EOF
+}
+
+add_overviewer() {
+  remote_exec /bin/bash << EOF
+    docker run -d --name=web -p 80:8000 whatupdave/partycloud-web
+    crontab -l | { cat; echo "@hourly docker run --volumes-from data --volumes-from web whatupdave/partycloud-overviewer"; } | crontab -
+EOF
+}
+
 remote_exec() {
   ip=`terraform show terraform.tfstate | grep ipv4_address | cut -d ' ' -f5`
-  ssh -A -o StrictHostKeyChecking=no root@$ip $@
+  ssh -A -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$ip $@
 }
 
 [[ $# -eq 0 ]] && usage
